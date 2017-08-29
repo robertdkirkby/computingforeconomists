@@ -37,6 +37,7 @@ for m = 1:M
 end
 toc
 
+%%
 % When objects of any kind are stored in memory they will be stored in
 % blocks. For example an 64-bit floating number will be stored as a single
 % 'block' of 64 contiguous (consecutive) bits (a bit is a single 0 or 1,

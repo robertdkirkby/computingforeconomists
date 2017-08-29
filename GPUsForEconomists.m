@@ -25,7 +25,7 @@
 % A GPU contains thousands of processors, meaning that thousands of operations can be performed at one time. The catch is that 
 % each of these processors is much weaker/slower than the processor found in a CPU.
 %
-% So for calculations that are \textit{embarassingly parallel} ---large numbers of operations each of which is simple and can be performed 
+% So for calculations that are _embarassingly parallel_ ---large numbers of operations each of which is simple and can be performed 
 % in parallel--- GPUs will be much faster than CPUs. If calculations can be parallelized but each operation is complex then parallel 
 % CPUs will be faster. For some calculations each operation necessarily depends on the results of previous calculations, these will 
 % not be parallelizable.
@@ -37,10 +37,10 @@
 % To make these concepts concrete let's look at some trivial examples of each.
 %
 % Simulating an AR(1) (auto-regressive of order one) process is not parallelizable. An AR(1) process is defined by
-% $y_t=\rho y_{t-1} + \epsilon_t$
+% $$y_t=\rho y_{t-1} + \epsilon_t$$
 % Say we want to simulate this AR(1) process for 100 periods. Clearly to compute $y_t$ we have to have already calculated 
 % $y_{t-1}$; eg., computing $y_4$ requires that we have already computed $y_3$. So each step necessarily depends on the 
-% results of the previous calculation. This is \textit{not} parallelizable.
+% results of the previous calculation. This is _not_ parallelizable.
 %
 % In contrast consider simulating and i.i.d. (independent and identically distributed) process. For example,
 % $\epsilon \sim N(0,1)$ 
@@ -105,14 +105,16 @@ A_gpu=3+0.6*randn('gpuArray');
 toc
 % This involves simple tasks, and lots of them. gpu is good at this.
 
+%
 % Notice from previous three examples how for something like this where the
 % operations are very simple and perfectly parallelizable we get that gpu
 % beats cpu beats parallel cpu.
-
+%
 % Notice from comparing these with following two examples how creating the object you want in
 % the wrong place (because it might be faster) and then transferring it to
 % where you want it can often be notably slower due to the overhead
 % incurred in moving things back and forth.
+%
 
 tic; % Create on cpu then move to gpu.
 A_noparallel=3+0.6*randn(N,N);
@@ -123,10 +125,13 @@ tic; % Create on gpu then move to cpu.
 A_gpu=3+0.6*randn('gpuArray');
 A_noparallel=gather(A_gpu);
 toc
+
+%
 % While creating on gpu tends to be faster, the time lost in moving it to
 % cpu means that if we want to work with it on cpu it will sometimes be
 % worth creating it there even though ignoring the moving this would be
 % slower.
+%
 
 % Now an example of simulating a time-series. cpu can beat gpu here since
 % there is nothing to parallelize.
@@ -165,7 +170,7 @@ toc
 
 
 
-
+%
 % [Side commentary: Computers do not understand the concept of randomness and can never do anything actually random.
 % Whenever we ask the computer to generate a random number there is actually nothing random about what 
 % happens. The computer simply already has a long list of numbers and just gives us the next number from this list.
@@ -179,6 +184,7 @@ toc
 % don't do the right thing (e.g., you miss one of the elements for some reason) while something like zeros() or ones() will
 % still run, but give wrong numbers. Sometimes you won't realise the numbers are wrong until you have wasted a lot of your own time.
 % Compare:
+%
 tic;
 zeros(N,N);
 toc

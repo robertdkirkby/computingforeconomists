@@ -66,7 +66,7 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 
 
 
-  </style></head><body><div class="content"><h1>GPUs for Economists</h1><!--introduction--><p>GPUs can provide substantial increases in computation speed for some applications common in Economics, over the use of CPUs, or even CPUs in parallel. But knowing when and where GPUs will speed computation is key to their use. Loosely, when a calculation can be parallelized, and when each of the smaller parallelized calculations are simple, GPUs will provide major speed increases.</p><p>We begin by describing GPUs and parallelization. We then discuss how GPUs work, with a focus on their differences from (parallel) CPUs. The similarities and differences between GPUs and (parallel) CPUs will be explained in stages allowing us to look at examples of where and how these differences can matter. We also give a brief description of the kinds of GPU are available for purchase; some are better for scientific computing.</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">GPUs: How are they different? Part 1: Parallelization</a></li><li><a href="#2">Is it Parallelizable?</a></li><li><a href="#3">GPUs: How are they different? Part 2: Speed of the individual processors.</a></li><li><a href="#4">Different Algorithms</a></li><li><a href="#5">GPUs: How are they different? Part 3: Shared memory vs seperate memory.</a></li><li><a href="#6">GPUs: How are they different? Part 4: Leftovers.</a></li><li><a href="#7">Overhead: Why parallelization is not always better.</a></li><li><a href="#8">Hybrid computing: GPUs and CPUs together.</a></li><li><a href="#9">Which GPU to Buy?</a></li></ul></div><h2 id="1">GPUs: How are they different? Part 1: Parallelization</h2><p>Fundamentaly both GPUs and CPUs perform calculations in the same way: combining 0s and 1s using logic gates such as AND, OR, and NOT. Any calculation that can be done on a CPU can be done on a GPU, and vice-versa. The differences are entirely related to the speed at which different computational tasks will be performed.</p><p>A CPU contains a single processor which performs one operation at a time, and does that single operation quickly. Multiple operations on a CPU are simply performed one after another. Using CPUs in parallel ---a standard laptop today might have four CPUs, so four processors--- we instead perform multiple operations at a time. For example to perform 40 operations on four parallelized CPUs we can perform ten operations one after another on each of the four CPUs. So we can do the same calculation 4 times faster than performing all fourty operations one after another on a single CPU; although in practice the actual speed gain is never quite this high (never linear in the number of processors).</p><p>A GPU contains thousands of processors, meaning that thousands of operations can be performed at one time. The catch is that each of these processors is much weaker/slower than the processor found in a CPU.</p><p>So for calculations that are \textit{embarassingly parallel} ---large numbers of operations each of which is simple and can be performed in parallel--- GPUs will be much faster than CPUs. If calculations can be parallelized but each operation is complex then parallel CPUs will be faster. For some calculations each operation necessarily depends on the results of previous calculations, these will not be parallelizable.</p><p>We begin by explaining the concept of parallelization itself.</p><h2 id="2">Is it Parallelizable?</h2><p>To make these concepts concrete let's look at some trivial examples of each.</p><p>Simulating an AR(1) (auto-regressive of order one) process is not parallelizable. An AR(1) process is defined by <img src="GPUsForEconomists_eq10737142115810265153.png" alt="$y_t=\rho y_{t-1} + \epsilon_t$"> Say we want to simulate this AR(1) process for 100 periods. Clearly to compute <img src="GPUsForEconomists_eq06873113638552739639.png" alt="$y_t$"> we have to have already calculated <img src="GPUsForEconomists_eq05746125358800604601.png" alt="$y_{t-1}$">; eg., computing <img src="GPUsForEconomists_eq03757368620881814116.png" alt="$y_4$"> requires that we have already computed <img src="GPUsForEconomists_eq10265468715771879754.png" alt="$y_3$">. So each step necessarily depends on the results of the previous calculation. This is \textit{not} parallelizable.</p><p>In contrast consider simulating and i.i.d. (independent and identically distributed) process. For example, <img src="GPUsForEconomists_eq12524236101676637609.png" alt="$\epsilon \sim N(0,1)$"> Say we want to simulate 100 draws from this (standard normal) i.i.d. process. Each draw is independent of all the other draws; eg., computing the fourth draw does not require that we have already computed the third draw. So each step is independent of the results of the other calculations. This is parallelizable.</p><p>Once we know a calculation seems like it will benefit from parallelization we have two choices: parallel CPU or a GPU.</p><h2 id="3">GPUs: How are they different? Part 2: Speed of the individual processors.</h2><p>Should we parallelize on multiple CPUs, or on the GPU?</p><p>The first thing to consider when you want to parellize and are trying to decide between multiple CPUs or GPU is how complex is each individual task. If each individual task is simple, the GPU is likely faster, if each task is quite complex parallel CPUs are likely faster.</p><p>For example, consider simulating i.i.d. data vs simulating panel data.</p><p>Simulated i.i.d. data will involve creating many random draws, each of which is independent of the others. A single random draw is a simple task and so this will be performed well by the GPU; large number of independent simple tasks.</p><p>Simulated panel data also involves creating many independent objects in the cross-section dimension, but each of these objects is a time series and so is not so simple. This is likely to perform well on parallel CPUs; large number of independent but not-so-simple tasks.</p><p>Often a hybrid can work better than. For example when simulating panel data we need to randomly draw initial states. Initial states are typically independent of one another so we can use GPU to draw the initial states, then switch to parallel CPUs and simulate each of the time series that makes up the panel from there. The GPU will perform the random number generation faster than the CPUs could and may be worth the overhead involved. We will return to hybrids later on. [This particular example is unlikely to be worth the overhead, but the general idea is sensible.] [In practice you could actually probably do much better when creating a simulated panel dataset by vectorizing the independent agents dimension and then iterating on this. This might even make the gpu the fastest. As this example illustrates it is not always easy to tell in advance which dimension you should parallelize.]</p><p>Let's see some examples to illustrate</p><p>First, creating some iid numbers with normal distribution, mean 3, and standard deviation 0.6 [randn() creates standard normal numbers, that is mean 0 and standard deviation 1. We can convert these to N(mu,sigma^2) by multiplying by sigma and adding mu]</p><pre class="codeinput">N=10^4;
+  </style></head><body><div class="content"><h1>GPUs for Economists</h1><!--introduction--><p>GPUs can provide substantial increases in computation speed for some applications common in Economics, over the use of CPUs, or even CPUs in parallel. But knowing when and where GPUs will speed computation is key to their use. Loosely, when a calculation can be parallelized, and when each of the smaller parallelized calculations are simple, GPUs will provide major speed increases.</p><p>We begin by describing GPUs and parallelization. We then discuss how GPUs work, with a focus on their differences from (parallel) CPUs. The similarities and differences between GPUs and (parallel) CPUs will be explained in stages allowing us to look at examples of where and how these differences can matter. We also give a brief description of the kinds of GPU are available for purchase; some are better for scientific computing.</p><!--/introduction--><h2>Contents</h2><div><ul><li><a href="#1">GPUs: How are they different? Part 1: Parallelization</a></li><li><a href="#2">Is it Parallelizable?</a></li><li><a href="#3">GPUs: How are they different? Part 2: Speed of the individual processors.</a></li><li><a href="#4">Different Algorithms</a></li><li><a href="#5">GPUs: How are they different? Part 3: Shared memory vs seperate memory.</a></li><li><a href="#6">GPUs: How are they different? Part 4: Leftovers.</a></li><li><a href="#7">Overhead: Why parallelization is not always better.</a></li><li><a href="#8">Hybrid computing: GPUs and CPUs together.</a></li><li><a href="#9">Which GPU to Buy?</a></li></ul></div><h2 id="1">GPUs: How are they different? Part 1: Parallelization</h2><p>Fundamentaly both GPUs and CPUs perform calculations in the same way: combining 0s and 1s using logic gates such as AND, OR, and NOT. Any calculation that can be done on a CPU can be done on a GPU, and vice-versa. The differences are entirely related to the speed at which different computational tasks will be performed.</p><p>A CPU contains a single processor which performs one operation at a time, and does that single operation quickly. Multiple operations on a CPU are simply performed one after another. Using CPUs in parallel ---a standard laptop today might have four CPUs, so four processors--- we instead perform multiple operations at a time. For example to perform 40 operations on four parallelized CPUs we can perform ten operations one after another on each of the four CPUs. So we can do the same calculation 4 times faster than performing all fourty operations one after another on a single CPU; although in practice the actual speed gain is never quite this high (never linear in the number of processors).</p><p>A GPU contains thousands of processors, meaning that thousands of operations can be performed at one time. The catch is that each of these processors is much weaker/slower than the processor found in a CPU.</p><p>So for calculations that are <i>embarassingly parallel</i> ---large numbers of operations each of which is simple and can be performed in parallel--- GPUs will be much faster than CPUs. If calculations can be parallelized but each operation is complex then parallel CPUs will be faster. For some calculations each operation necessarily depends on the results of previous calculations, these will not be parallelizable.</p><p>We begin by explaining the concept of parallelization itself.</p><h2 id="2">Is it Parallelizable?</h2><p>To make these concepts concrete let's look at some trivial examples of each.</p><p>Simulating an AR(1) (auto-regressive of order one) process is not parallelizable. An AR(1) process is defined by <img src="GPUsForEconomists_eq17297370205473605780.png" alt="$$y_t=\rho y_{t-1} + \epsilon_t$">$ Say we want to simulate this AR(1) process for 100 periods. Clearly to compute <img src="GPUsForEconomists_eq06873113638552739639.png" alt="$y_t$"> we have to have already calculated <img src="GPUsForEconomists_eq05746125358800604601.png" alt="$y_{t-1}$">; eg., computing <img src="GPUsForEconomists_eq03757368620881814116.png" alt="$y_4$"> requires that we have already computed <img src="GPUsForEconomists_eq10265468715771879754.png" alt="$y_3$">. So each step necessarily depends on the results of the previous calculation. This is <i>not</i> parallelizable.</p><p>In contrast consider simulating and i.i.d. (independent and identically distributed) process. For example, <img src="GPUsForEconomists_eq12524236101676637609.png" alt="$\epsilon \sim N(0,1)$"> Say we want to simulate 100 draws from this (standard normal) i.i.d. process. Each draw is independent of all the other draws; eg., computing the fourth draw does not require that we have already computed the third draw. So each step is independent of the results of the other calculations. This is parallelizable.</p><p>Once we know a calculation seems like it will benefit from parallelization we have two choices: parallel CPU or a GPU.</p><h2 id="3">GPUs: How are they different? Part 2: Speed of the individual processors.</h2><p>Should we parallelize on multiple CPUs, or on the GPU?</p><p>The first thing to consider when you want to parellize and are trying to decide between multiple CPUs or GPU is how complex is each individual task. If each individual task is simple, the GPU is likely faster, if each task is quite complex parallel CPUs are likely faster.</p><p>For example, consider simulating i.i.d. data vs simulating panel data.</p><p>Simulated i.i.d. data will involve creating many random draws, each of which is independent of the others. A single random draw is a simple task and so this will be performed well by the GPU; large number of independent simple tasks.</p><p>Simulated panel data also involves creating many independent objects in the cross-section dimension, but each of these objects is a time series and so is not so simple. This is likely to perform well on parallel CPUs; large number of independent but not-so-simple tasks.</p><p>Often a hybrid can work better than. For example when simulating panel data we need to randomly draw initial states. Initial states are typically independent of one another so we can use GPU to draw the initial states, then switch to parallel CPUs and simulate each of the time series that makes up the panel from there. The GPU will perform the random number generation faster than the CPUs could and may be worth the overhead involved. We will return to hybrids later on. [This particular example is unlikely to be worth the overhead, but the general idea is sensible.] [In practice you could actually probably do much better when creating a simulated panel dataset by vectorizing the independent agents dimension and then iterating on this. This might even make the gpu the fastest. As this example illustrates it is not always easy to tell in advance which dimension you should parallelize.]</p><p>Let's see some examples to illustrate</p><p>First, creating some iid numbers with normal distribution, mean 3, and standard deviation 0.6 [randn() creates standard normal numbers, that is mean 0 and standard deviation 1. We can convert these to N(mu,sigma^2) by multiplying by sigma and adding mu]</p><pre class="codeinput">N=10^4;
 
 tic; <span class="comment">% Create an N-by-N matrix of random numbers each iid with N(3,0.6^2) distribution.</span>
 A_noparallel=3+0.6*randn(N,N);
@@ -87,14 +87,16 @@ A_gpu=3+0.6*randn(<span class="string">'gpuArray'</span>);
 toc
 <span class="comment">% This involves simple tasks, and lots of them. gpu is good at this.</span>
 
+<span class="comment">%</span>
 <span class="comment">% Notice from previous three examples how for something like this where the</span>
 <span class="comment">% operations are very simple and perfectly parallelizable we get that gpu</span>
 <span class="comment">% beats cpu beats parallel cpu.</span>
-
+<span class="comment">%</span>
 <span class="comment">% Notice from comparing these with following two examples how creating the object you want in</span>
 <span class="comment">% the wrong place (because it might be faster) and then transferring it to</span>
 <span class="comment">% where you want it can often be notably slower due to the overhead</span>
 <span class="comment">% incurred in moving things back and forth.</span>
+<span class="comment">%</span>
 
 tic; <span class="comment">% Create on cpu then move to gpu.</span>
 A_noparallel=3+0.6*randn(N,N);
@@ -105,10 +107,13 @@ tic; <span class="comment">% Create on gpu then move to cpu.</span>
 A_gpu=3+0.6*randn(<span class="string">'gpuArray'</span>);
 A_noparallel=gather(A_gpu);
 toc
+
+<span class="comment">%</span>
 <span class="comment">% While creating on gpu tends to be faster, the time lost in moving it to</span>
 <span class="comment">% cpu means that if we want to work with it on cpu it will sometimes be</span>
 <span class="comment">% worth creating it there even though ignoring the moving this would be</span>
 <span class="comment">% slower.</span>
+<span class="comment">%</span>
 
 <span class="comment">% Now an example of simulating a time-series. cpu can beat gpu here since</span>
 <span class="comment">% there is nothing to parallelize.</span>
@@ -147,7 +152,7 @@ toc
 
 
 
-
+<span class="comment">%</span>
 <span class="comment">% [Side commentary: Computers do not understand the concept of randomness and can never do anything actually random.</span>
 <span class="comment">% Whenever we ask the computer to generate a random number there is actually nothing random about what</span>
 <span class="comment">% happens. The computer simply already has a long list of numbers and just gives us the next number from this list.</span>
@@ -161,16 +166,17 @@ toc
 <span class="comment">% don't do the right thing (e.g., you miss one of the elements for some reason) while something like zeros() or ones() will</span>
 <span class="comment">% still run, but give wrong numbers. Sometimes you won't realise the numbers are wrong until you have wasted a lot of your own time.</span>
 <span class="comment">% Compare:</span>
+<span class="comment">%</span>
 tic;
 zeros(N,N);
 toc
 tic;
 nan(N,N);
 toc
-</pre><pre class="codeoutput">Elapsed time is 1.202049 seconds.
+</pre><pre class="codeoutput">Elapsed time is 1.390442 seconds.
 Starting parallel pool (parpool) using the 'local' profile ...
 connected to 2 workers.
-Elapsed time is 20.024481 seconds.
+Elapsed time is 19.811120 seconds.
 </pre><pre class="codeoutput error">There is a problem with the CUDA driver or with this GPU device. Be sure that you have a &lt;a href="matlab:web('http://www.mathworks.com/gpudevice','-browser')"&gt;supported GPU&lt;/a&gt; and that the &lt;a href="matlab:web('http://www.mathworks.com/gpudriver','-browser')"&gt;latest driver&lt;/a&gt; is installed.
 
 Error in GPUsForEconomists (line 104)
@@ -207,7 +213,7 @@ Caused by:
 % A GPU contains thousands of processors, meaning that thousands of operations can be performed at one time. The catch is that 
 % each of these processors is much weaker/slower than the processor found in a CPU.
 %
-% So for calculations that are \textit{embarassingly parallel} REPLACE_WITH_DASH_DASH-large numbers of operations each of which is simple and can be performed 
+% So for calculations that are _embarassingly parallel_ REPLACE_WITH_DASH_DASH-large numbers of operations each of which is simple and can be performed 
 % in parallelREPLACE_WITH_DASH_DASH- GPUs will be much faster than CPUs. If calculations can be parallelized but each operation is complex then parallel 
 % CPUs will be faster. For some calculations each operation necessarily depends on the results of previous calculations, these will 
 % not be parallelizable.
@@ -219,10 +225,10 @@ Caused by:
 % To make these concepts concrete let's look at some trivial examples of each.
 %
 % Simulating an AR(1) (auto-regressive of order one) process is not parallelizable. An AR(1) process is defined by
-% $y_t=\rho y_{t-1} + \epsilon_t$
+% $$y_t=\rho y_{t-1} + \epsilon_t$$
 % Say we want to simulate this AR(1) process for 100 periods. Clearly to compute $y_t$ we have to have already calculated 
 % $y_{t-1}$; eg., computing $y_4$ requires that we have already computed $y_3$. So each step necessarily depends on the 
-% results of the previous calculation. This is \textit{not} parallelizable.
+% results of the previous calculation. This is _not_ parallelizable.
 %
 % In contrast consider simulating and i.i.d. (independent and identically distributed) process. For example,
 % $\epsilon \sim N(0,1)$ 
@@ -287,14 +293,16 @@ A_gpu=3+0.6*randn('gpuArray');
 toc
 % This involves simple tasks, and lots of them. gpu is good at this.
 
+%
 % Notice from previous three examples how for something like this where the
 % operations are very simple and perfectly parallelizable we get that gpu
 % beats cpu beats parallel cpu.
-
+%
 % Notice from comparing these with following two examples how creating the object you want in
 % the wrong place (because it might be faster) and then transferring it to
 % where you want it can often be notably slower due to the overhead
 % incurred in moving things back and forth.
+%
 
 tic; % Create on cpu then move to gpu.
 A_noparallel=3+0.6*randn(N,N);
@@ -305,10 +313,13 @@ tic; % Create on gpu then move to cpu.
 A_gpu=3+0.6*randn('gpuArray');
 A_noparallel=gather(A_gpu);
 toc
+
+%
 % While creating on gpu tends to be faster, the time lost in moving it to
 % cpu means that if we want to work with it on cpu it will sometimes be
 % worth creating it there even though ignoring the moving this would be
 % slower.
+%
 
 % Now an example of simulating a time-series. cpu can beat gpu here since
 % there is nothing to parallelize.
@@ -347,7 +358,7 @@ toc
 
 
 
-
+%
 % [Side commentary: Computers do not understand the concept of randomness and can never do anything actually random.
 % Whenever we ask the computer to generate a random number there is actually nothing random about what 
 % happens. The computer simply already has a long list of numbers and just gives us the next number from this list.
@@ -361,6 +372,7 @@ toc
 % don't do the right thing (e.g., you miss one of the elements for some reason) while something like zeros() or ones() will
 % still run, but give wrong numbers. Sometimes you won't realise the numbers are wrong until you have wasted a lot of your own time.
 % Compare:
+%
 tic;
 zeros(N,N);
 toc

@@ -3,6 +3,10 @@
 % Smolyak Grids. It aims to both teach the concepts, and give an idea how
 % to code them in practice.
 %
+% To use you will need to also download:
+% <https://au.mathworks.com/matlabcentral/fileexchange/50963-smolyak-anisotropic-grid>
+% and add it to the Matlab path (or just put them in your active folder).
+%
 % Proceeds as follows.
 % First: look at some graphs of Chebyshev polynomials (just to have seen what they look like)
 % Second: introduce the idea of curve-fitting. Do this first with standard
@@ -14,8 +18,12 @@
 
 %% 1. Chebyshev polynomials of the first kind are defined as Tn(x) = cos(n*arccos(x)).
 % Can also define them by a recursive formula which makes computing them much faster.
-
+%
 % chebyshevT(n,x) represents the nth degree Chebyshev polynomial of the first kind at the point x
+%
+% Matlab has built in commands for Chebyshev polynomials. We will start
+% with these just to see what Chebyshev polynomials but later switch to the
+% codes of Judd, Maliar, Maliar & Valero (2014).
 
 chebyshevT(3,0)
 % the values of the 0th to 4th order polynomials evaluated at 0
@@ -127,13 +135,13 @@ subplot(2,1,2); plot(xgrid,ygrid,'*',-1:0.1:1,ygrid_fittedchebyshev,'-')
 title('Fitted Chebyshev polynomial')
 legend('Original function', 'Fitted chebyshev approximation')
 
-
+%
 % Side note: in cases such as this example where the actual function exp(x)
 % to be evaluated is known we shouldn't just be using our arbitrary xgrid
 % to fit the chebyshev polynomial, we can use a better xgrid, or at least a
 % faster implementation.
 % See implementation in: https://people.sc.fsu.edu/~jburkardt/m_src/chebyshev/chebyshev_coefficients.m
-
+%
 % Why would we want to approximate the function using chebyshev polynomials
 % rather than just normal polynomials? Both polynomials and chebyshev polynomials
 % form a complete basis for the set of infinitely continuously differentiable 
@@ -147,7 +155,7 @@ legend('Original function', 'Fitted chebyshev approximation')
 % tends to be more stable.
 % More on nice properties of Chebyshev polynomials in terms of
 % Approximation Theory: https://en.wikipedia.org/wiki/Approximation_theory
-
+%
 % If for some reason you ever wanted to swich from Chebyshev polynomials
 % into just a standard polynomials you could easily calculate the
 % coefficients. See pg 197 of
@@ -155,11 +163,13 @@ legend('Original function', 'Fitted chebyshev approximation')
 % But in practice you are unlikely to ever want to do so.
 
 %% Fitting Chebyshev polynomials when the domain is [a,b] rather than [-1,1]
+%
 % What about if your data are not originally on the interval, [-1,1]?
 % Then just add an initial step to get your data from their existing
 % interval [a,b] onto the interval [-1,1].
 % zgrid = ((xgrid-min(xgrid))-(max(xgrid)-xgrid))/(max(xgrid)-min(xgrid));
 % Then just do all the same as above using zgrid and ygrid.
+%
 
 figure(3)
 clear A % just need to clean this out as otherwise the A created above would cause an error
@@ -203,6 +213,7 @@ plot(xgrid,ygrid,'*',xgrid,ygrid_fittedchebyshev,'-')
 title('Fitted Chebyshev on interval [a,b]')
 legend('Original function', 'Fitted chebyshev approximation')
 
+%
 % When people talk about 'hypercubes' they are talking about this trick of
 % switching problems from [a,b] to [-1,1] and solving there, then switching
 % back. It has the advantage that all your codes written to solve models
@@ -210,6 +221,7 @@ legend('Original function', 'Fitted chebyshev approximation')
 % extension of this to [-1,1]^d in higher dimensions, where d is number of dimensions).
 
 %% Derivatives and Integrals: Advantages of Chebyshev approximation
+%
 % Say that we want to find the derivative or integral of our Chebyshev
 % polynomial. It turns out these are computationally trivial to calculate:
 % representing our derivative/integral by a chebyshev polynomial
@@ -259,17 +271,19 @@ summation=summation+fac*integralchebyshevcoeffs(ii);
 % Normalize first coefficient so that value of the integral at a is zero
 integralchebyshevcoeffs(1)=2*summation;
 
+%
 % Note: the formula for calculating the derivative and that for caclulating the integral are just the same thing in two different directions.
-
+%
 % Note: I suspect these derivative and integral formula are the exact
 % derivative and integral, not just their best approximation in terms of
 % chebyshev polynomials. But I have never actually checked this is true.
-
+%
 % Lets plot the original function, the chebyshev approximation, the
 % (chebyshev) derivative, and the (chebyshev) integral. 
 % This is mainly of interest if you use the exponential function as your example since in
 % this case both the derivative and integral should also be the exponential function.
 % Evaluate the fitted chebyshev polynomial on our zgrid
+%
 
 % values for derivative (just same 'values' code as before)
 b1 = zeros(numdatapoints,1);
@@ -302,20 +316,23 @@ subplot(3,1,3); plot(xgrid,ygrid,'*',xgrid,ygrid_integralchebyshev,'-')
 title('Integral of Fitted Chebyshev on interval [a,b]')
 legend('Original function', 'Integral of Fitted Chebyshev')
 
+%
 % Remark: derivative is fine, but integral is pretty rubbish.
 % [Recall: derivative and integral of exp(x) should both just be exp(x), in latter case up to a constant of integration]
+%
 
 %% Higher dimensions
+%
 % Until now the function to be approximated as just one-dimensional. What
 % about higher dimensional functions?
-
+%
 % One basic approach would just be to use the tensor-product of Chebyshev
 % polynomials. This can work fine, but only for a few dimensions. After
 % that the curse of dimensionality kicks in too hard. 
 % [eg. say we want a 5th order chebyshev polynomial in each dimension. Then for four
 % dimensions we will have 5^4=625 coefficients, and for 10 dimensions we
 % would have 9765625=5^10 coefficients.]
-
+%
 % We can use 'other products' of chebyshev polynomials to reduce the number
 % of coefficients required. Smolyak grids are one approach to doing this.
 % Smolyak grids have a 'level of approximation' parameter, mu, that determines
@@ -323,12 +340,12 @@ legend('Original function', 'Integral of Fitted Chebyshev')
 % [eg. for the two dimensional case, Smolyak grid has 1,5, and 13 points for
 % mu=0,1,2 respectively. The tensor product of 5 points in each dimension
 % would involve 25=5^2 points.]
-
+%
 % It turns out that we can combine the Smolyak grid concept of how to
 % create higher dimensional grids with the Chebyshev polynomial
 % approximation for a single dimension (loosely, a 5th order Chebyshev polynomial
 % can be thought of as 5 grid points used to approximate a single dimensional function)
-
+%
 % While the concept is simple enough the algebra is hard and the final formulae are convoluted. 
 % Judd, Maliar, Maliar & Valero (2014) provide the formulae.
 
@@ -339,10 +356,10 @@ legend('Original function', 'Integral of Fitted Chebyshev')
 %
 % Formula for coeffs is also on bottom of 2nd page of
 % http://icaci.org/files/documents/ICC_proceedings/ICC2009/html/nonref/10_3.pdf
+%
 
-%% Now a two dimensional example using the smolyak grid with chebyshev
-% polynomials, rather than just using tensor product of the 1D chebyshev
-% polynomials.
+%% Now a two dimensional example using the smolyak grid with chebyshev polynomials. 
+% Rather than just using tensor product of the 1D chebyshev polynomials.
 % Use JMMV (2014) codes: https://au.mathworks.com/matlabcentral/fileexchange/50963-smolyak-anisotropic-grid
 % An anisotropic grid is used, meaning that the 'level of approximation'
 % for the Smolyak grid can be set differently for different dimensions.
@@ -399,38 +416,58 @@ end
 subplot(1,2,2), surf(x1,x2,y_fitted),title('Smolyak interpolation')
     % Plot Smolyak interpolation
 
+%
 % Note: the commands being called here to do the Smolyak anisotropic grids
 % based on chebyshev polynomials are not limited to the two dimensions that
 % we use here. They work for any number 'd' of dimensions.
+%
 
 
 
 
 
-
-%% Might be a bad idea to use these Smolyak-Chebshevs to calculate integrals in 2D????
+%% A bit of related Theory explaining Smolyak grids and sparse grids in general.
 % http://web.stanford.edu/~paulcon/slides/Oxford_2012.pdf 
-% Slide 14, is this what it is saying???
 
 
 
 
 
+%% How should we do integrals when our functions are in Smolyak-Chebyshev form?
+%
+% Welcome to the bleeding edge of numerical computation. Quite simply this
+% is a hard problem and one to which we do not yet know the answer.
+%
+% One obvious answer would just be to evaluate the entire function on a
+% non-sparse grid and then just take the integral there using standard
+% quadrature (or monte-carlo) integration methods. While easy to code it
+% does of course defeat the entire point of using a sparse grid in the
+% first place.
+%
+% Current approaches include:
+% Gauss-Hermite quadrature: JMM2011 (and JMMV2014) use Guass-Hermite quadrature to take 
+%         integrals with respect to shocks. Problem is that it only really
+%         works if the shocks are independent.
+% Monomials: JMM2011. This is essentially about applying the sparse grids
+%         idea to the quadrature approach. Just do quadrature at some
+%         points on a sparse grid rather than all the points on a 'product
+%         grid'.
+% 
+% 
+% Monte-Carlo integration methods do not appear to perform as well as the
+% above mentioned (according to JMM2011).
+
+% JMM2011: Numerically stable and accurate stochastic simulation approaches for solving dynamic economic models
+% JMMV2014: Smolyak method for solving dynamic economic models: Lagrange interpolation, anisotropic grid and adaptive domain
 
 
 
-
-
-
-%% Integration using Gauss-Hermite quadrature
-% We have seen how to approximate a function using Smolyak-Chebyshev.
-% What about taking an integral of this function?
-% JMMV2011 (and JMMV2014) use Guass-Hermite quadrature to take integrals
-% with respect to shocks. We will now see how that works.
-% ON second thoughts, no we won't bother.
-
-
-%% Integration using sparse grid quadrature
+%% Anisotropic grids.
+%
+% The codes of JMMV2014 allow for the grids to be anisotropic, meaning that
+% the degree of the Chebyshev polynomials can be different in each
+% dimension. Conceptually this is an easy idea to get your head around, but
+% the actual implementation/algebra is tricky.
 
 
 

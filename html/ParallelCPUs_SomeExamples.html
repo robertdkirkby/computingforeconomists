@@ -1,0 +1,270 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>ParallelCPUs_SomeExamples</title><meta name="generator" content="MATLAB 9.2"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2017-08-29"><meta name="DC.source" content="ParallelCPUs_SomeExamples.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#1">Parallel CPUs: some guidelines and nice applications.</a></li><li><a href="#3">Slicing matrices</a></li><li><a href="#6">Some links:</a></li></ul></div><h2 id="1">Parallel CPUs: some guidelines and nice applications.</h2><p>Perhaps the easiest bit of parallelization you can do in Matlab (and most other high-level programming languages) is to parallelize for-loops. Obviously this will only work when your for-loops do not involve each step depending on the previous step. If the contents of each for-loop are simple you will be better of vectorizing (and perhaps then using the gpu).</p><p>One nice example of something you might want to do is to solve some problem for many different parameter values. Obviously the solution for one parameter value is going to be different from the solution for another parameter value, and so a parallel for loop is likely a good idea here.</p><p>[Common applications of this in Economics would be as part of estimation, or as part of robustness.]</p><pre class="codeinput">N=1000;
+thetavec=linspace(1,5,N);
+
+options=optimoptions(<span class="string">'fmincon'</span>,<span class="string">'Display'</span>,<span class="string">'off'</span>);
+tic;
+xyvec=nan(length(thetavec),2);
+<span class="keyword">for</span> ii = 1:length(thetavec)
+    theta=thetavec(ii);
+    modelfn=@(xy) xy(1)+3*xy(1)-theta*xy(1)^2-2*xy(2)+theta*xy(1)*xy(2); <span class="comment">% Note: Idea is that xy(1) is x, and xy(2) is y. Just need to write it this way as fmincon requires it to be a function that has a vector input.</span>
+    xy0=[1,1];
+    xy=fmincon(modelfn,xy0,[],[],[],[],[-100,-100],[100,100],[],options); <span class="comment">% -100 and 100 are upper and lower bounds on x</span>
+    xyvec(ii,:)=xy;
+<span class="keyword">end</span>
+toc
+
+tic;
+xyvec=nan(length(thetavec),2);
+<span class="keyword">parfor</span> ii = 1:length(thetavec)
+    theta=thetavec(ii);
+    modelfn=@(xy) xy(1)+3*xy(1)-theta*xy(1)^2-2*xy(2)+theta*xy(1)*xy(2);
+    xy0=[1,1];
+    xy=fmincon(modelfn,xy0,[],[],[],[],[-100,-100],[100,100],[],options); <span class="comment">% -100 and 100 are upper and lower bounds on x</span>
+    xyvec(ii,:)=xy;
+<span class="keyword">end</span>
+toc
+<span class="comment">% Note: if you actually wanted to find the zeros of a function there are</span>
+<span class="comment">% specific Matlab commands for doing this (like fzero). This example is</span>
+<span class="comment">% just intended as an illustration of parfor.</span>
+</pre><pre class="codeoutput">Elapsed time is 9.513648 seconds.
+Elapsed time is 5.729116 seconds.
+</pre><p>The gains from parfor in this example are small. This is because the fmincon of modelfn was itself not something that took very long. If this command had taken a long time then the speed boost of parfor would be much larger.</p><h2 id="3">Slicing matrices</h2><p>Say you want your parallel for loop so that each iteration works with a specific line of a matrix. In principle Matlab will look at this and automatically figure out that each cpu should only be sent the relevant row of the matrix. In practice this is not always true, and telling it that this is the case can substantially boost speed by reducing overhead.</p><p>Take the following example, you can see that Matlab has done almost as well automatically slicing this up as we have done by manually doing it (in the second case). In more complicated applications however Matlab will be unable to spot all of the slicing tricks and so the automated version will be substantially slower. (Often Matlab gives a warning that it suspects a certain variable could be sliced but was unable to do so.)</p><pre class="codeinput">N=5000;
+
+A=randn(N,N);
+tic;
+<span class="keyword">parfor</span> ii=1:N
+    A(ii,:)=log(abs(A(ii,:))+0.01).*A(ii,:);
+<span class="keyword">end</span>
+toc
+
+A=randn(N,N);
+tic;
+<span class="keyword">parfor</span> ii=1:N
+    A_ii=A(ii,:);
+    A_ii=log(abs(A_ii)+0.01).*A_ii;
+    A(ii,:)=A_ii;
+<span class="keyword">end</span>
+toc
+</pre><pre class="codeoutput">Elapsed time is 1.046273 seconds.
+Elapsed time is 0.925451 seconds.
+</pre><p>Remember that Matlab is storing matrices so that their columns are continguous in memory. So actually if we were smarter we would do the same thing but with A in such a form that we take column slices.</p><pre class="codeinput">A=randn(N,N);
+tic;
+<span class="keyword">parfor</span> ii=1:N
+    A_ii=A(:,ii);
+    A_ii=log(abs(A_ii)+0.01).*A_ii;
+    A(:,ii)=A_ii;
+<span class="keyword">end</span>
+toc
+</pre><pre class="codeoutput">Elapsed time is 0.764040 seconds.
+</pre><p>Notice also that we could actually here just do the whole thing as matrix operations with no need to loop (we might even then be able to use the GPU and really speed things up). Both of these would give further speed boosts. The point here however was about the slicing of matrices with for-loops which can be important boost of speed in practice.</p><pre class="codeinput">A=randn(N,N);
+tic;
+A=log(abs(A)+0.01).*A;
+toc
+
+A_gpu=randn(N,N,<span class="string">'gpuArray'</span>);
+tic;
+A_gpu=log(abs(A_gpu)+0.01).*A_gpu;
+toc
+</pre><pre class="codeoutput">Elapsed time is 0.271839 seconds.
+</pre><pre class="codeoutput error">There is a problem with the CUDA driver or with this GPU device. Be sure that you have a &lt;a href="matlab:web('http://www.mathworks.com/gpudevice','-browser')"&gt;supported GPU&lt;/a&gt; and that the &lt;a href="matlab:web('http://www.mathworks.com/gpudriver','-browser')"&gt;latest driver&lt;/a&gt; is installed.
+
+Error in GPUsForEconomists (line 104)
+A_gpu=3+0.6*randn('gpuArray');
+
+Caused by:
+    The CUDA driver could not be loaded. The library name used was 'libcuda.so.1'. The error was:
+    libcuda.so.1: cannot open shared object file: No such file or director</pre><h2 id="6">Some links:</h2><p><a href="https://au.mathworks.com/help/distcomp/decide-when-to-use-parfor.html">https://au.mathworks.com/help/distcomp/decide-when-to-use-parfor.html</a></p><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2017a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Parallel CPUs: some guidelines and nice applications.
+%
+% Perhaps the easiest bit of parallelization you can do in Matlab (and most
+% other high-level programming languages) is to parallelize for-loops.
+% Obviously this will only work when your for-loops do not involve each
+% step depending on the previous step. If the contents of each for-loop are
+% simple you will be better of vectorizing (and perhaps then using the
+% gpu).
+%
+% One nice example of something you might want to do is to solve some
+% problem for many different parameter values. Obviously the solution for
+% one parameter value is going to be different from the solution for
+% another parameter value, and so a parallel for loop is likely a good idea
+% here.
+%
+% [Common applications of this in Economics would be as part of estimation, or as part of robustness.]
+
+N=1000;
+thetavec=linspace(1,5,N);
+
+options=optimoptions('fmincon','Display','off');
+tic;
+xyvec=nan(length(thetavec),2);
+for ii = 1:length(thetavec)
+    theta=thetavec(ii);
+    modelfn=@(xy) xy(1)+3*xy(1)-theta*xy(1)^2-2*xy(2)+theta*xy(1)*xy(2); % Note: Idea is that xy(1) is x, and xy(2) is y. Just need to write it this way as fmincon requires it to be a function that has a vector input.
+    xy0=[1,1];
+    xy=fmincon(modelfn,xy0,[],[],[],[],[-100,-100],[100,100],[],options); % -100 and 100 are upper and lower bounds on x
+    xyvec(ii,:)=xy;
+end
+toc
+
+tic;
+xyvec=nan(length(thetavec),2);
+parfor ii = 1:length(thetavec)
+    theta=thetavec(ii);
+    modelfn=@(xy) xy(1)+3*xy(1)-theta*xy(1)^2-2*xy(2)+theta*xy(1)*xy(2);
+    xy0=[1,1];
+    xy=fmincon(modelfn,xy0,[],[],[],[],[-100,-100],[100,100],[],options); % -100 and 100 are upper and lower bounds on x
+    xyvec(ii,:)=xy;
+end
+toc
+% Note: if you actually wanted to find the zeros of a function there are
+% specific Matlab commands for doing this (like fzero). This example is
+% just intended as an illustration of parfor.
+
+%%
+% The gains from parfor in this example are small. This is because
+% the fmincon of modelfn was itself not something that took very long. If
+% this command had taken a long time then the speed boost of parfor would
+% be much larger.
+
+%% Slicing matrices
+%
+% Say you want your parallel for loop so that each iteration works with a
+% specific line of a matrix. In principle Matlab will look at this and
+% automatically figure out that each cpu should only be sent the relevant
+% row of the matrix. In practice this is not always true, and telling it
+% that this is the case can substantially boost speed by reducing overhead.
+% 
+% Take the following example, you can see that Matlab has done almost as well automatically
+% slicing this up as we have done by manually doing it (in the second case). In more complicated
+% applications however Matlab will be unable to spot all of the slicing
+% tricks and so the automated version will be substantially slower. (Often
+% Matlab gives a warning that it suspects a certain variable could be
+% sliced but was unable to do so.)
+
+N=5000;
+
+A=randn(N,N);
+tic;
+parfor ii=1:N
+    A(ii,:)=log(abs(A(ii,:))+0.01).*A(ii,:);
+end
+toc
+
+A=randn(N,N);
+tic;
+parfor ii=1:N
+    A_ii=A(ii,:);
+    A_ii=log(abs(A_ii)+0.01).*A_ii;
+    A(ii,:)=A_ii;
+end
+toc
+
+%%
+% Remember that Matlab is storing matrices so that their columns are
+% continguous in memory. So actually if we were smarter we would do the
+% same thing but with A in such a form that we take column slices.
+%
+
+A=randn(N,N);
+tic;
+parfor ii=1:N
+    A_ii=A(:,ii);
+    A_ii=log(abs(A_ii)+0.01).*A_ii;
+    A(:,ii)=A_ii;
+end
+toc
+
+%%
+% Notice also that we could actually here just do the whole thing as
+% matrix operations with no need to loop (we might even then be able
+% to use the GPU and really speed things up). Both of these would give further speed boosts. The point
+% here however was about the slicing of matrices with for-loops which can
+% be important boost of speed in practice.
+%
+
+A=randn(N,N);
+tic;
+A=log(abs(A)+0.01).*A;
+toc
+
+A_gpu=randn(N,N,'gpuArray');
+tic;
+A_gpu=log(abs(A_gpu)+0.01).*A_gpu;
+toc
+
+%% Some links:
+% <https://au.mathworks.com/help/distcomp/decide-when-to-use-parfor.html>
+    
+
+
+##### SOURCE END #####
+--></body></html>

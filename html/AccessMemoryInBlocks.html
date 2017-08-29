@@ -1,0 +1,179 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>Example of locality in memory allocation</title><meta name="generator" content="MATLAB 9.2"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2017-08-29"><meta name="DC.source" content="AccessMemoryInBlocks.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; } 
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h1>Example of locality in memory allocation</h1><p>Matlab stores matrices by column, so working with columns, rather than rows, can make a big difference. [I am not sure in what order other languages store matrices.]</p><pre class="codeinput">M = 2000; <span class="comment">% Try 1000, 2000, 5000</span>
+N = 10000;
+
+<span class="comment">% A smart way to do it</span>
+tic
+a = zeros(M,N);
+toc
+
+clear <span class="string">a</span>
+
+<span class="comment">% A not so smart way to do it</span>
+<span class="comment">% a = zeros(m,n); % Comment in to check latency even with preallocation</span>
+
+tic
+<span class="keyword">for</span> n = 1:N
+    <span class="keyword">for</span> m = 1:M
+        a(m,n) = 0;
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+toc
+
+clear <span class="string">a</span>
+
+<span class="comment">% A really dumb way to do it</span>
+<span class="comment">% a = zeros(m,n); % Comment in to check latency even with preallocation</span>
+
+tic
+<span class="keyword">for</span> m = 1:M
+    <span class="keyword">for</span> n = 1:N
+        a(m,n) = 0;
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+toc
+</pre><pre class="codeoutput">Elapsed time is 0.007327 seconds.
+Elapsed time is 0.286541 seconds.
+Elapsed time is 14.334530 seconds.
+</pre><p>When objects of any kind are stored in memory they will be stored in blocks. For example an 64-bit floating number will be stored as a single 'block' of 64 contiguous (consecutive) bits (a bit is a single 0 or 1, the most basic unit of all computing). If one object immediately follows the previous then the computer can quickly move from one to the next, and this will be 'fast'. If one object does not immediately follow the previous then the computer cannot move directly onto the next, instead it needs to look at a 'pointer' that tells it where to find the next one and then go to there. This takes much longer. Matlab stores matrices in memory as one column following immediately on from another. So when we stick to the same column, do everything there, and then move to the next column, we are sticking to 'contiguous' blocks of memory. This is what we do in the second example, and are not doing in the third example. Hence why second is faster than third. Preallocation means that Matlab knows how much memory will be needed and can find a large enough chuck of contiguous memory to begin with. If we don't preallocate then Matlab will use a small amount of contiguous memory to begin with. Once it turns out this is not enough the it has to create a complete copy of what it has done so far in an amount of contiguous memory twice the original size and then continue to fill this in. (If this runs out then it repeats the process until done: find contiguous memory of twice the size, copy what we have so far, fill out the rest.)</p><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2017a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Example of locality in memory allocation
+% Matlab stores matrices by column, so working with columns, rather than
+% rows, can make a big difference.
+% [I am not sure in what order other languages store matrices.]
+
+M = 2000; % Try 1000, 2000, 5000
+N = 10000;
+
+% A smart way to do it
+tic
+a = zeros(M,N);
+toc
+
+clear a
+
+% A not so smart way to do it
+% a = zeros(m,n); % Comment in to check latency even with preallocation
+
+tic
+for n = 1:N
+    for m = 1:M
+        a(m,n) = 0;
+    end
+end
+toc
+
+clear a
+
+% A really dumb way to do it
+% a = zeros(m,n); % Comment in to check latency even with preallocation
+
+tic
+for m = 1:M
+    for n = 1:N
+        a(m,n) = 0;
+    end
+end
+toc
+
+%%
+% When objects of any kind are stored in memory they will be stored in
+% blocks. For example an 64-bit floating number will be stored as a single
+% 'block' of 64 contiguous (consecutive) bits (a bit is a single 0 or 1,
+% the most basic unit of all computing).
+% If one object immediately follows the previous then the computer can
+% quickly move from one to the next, and this will be 'fast'. 
+% If one object does not immediately follow the previous then the computer
+% cannot move directly onto the next, instead it needs to look at a
+% 'pointer' that tells it where to find the next one and then go to there.
+% This takes much longer.
+% Matlab stores matrices in memory as one column following immediately on
+% from another. So when we stick to the same column, do everything there,
+% and then move to the next column, we are sticking to 'contiguous' blocks
+% of memory. This is what we do in the second example, and are not doing in
+% the third example. Hence why second is faster than third.
+% Preallocation means that Matlab knows how much memory will be needed and
+% can find a large enough chuck of contiguous memory to begin with.
+% If we don't preallocate then Matlab will use a small amount of contiguous
+% memory to begin with. Once it turns out this is not enough the it has to
+% create a complete copy of what it has done so far in an amount of
+% contiguous memory twice the original size and then continue to fill this
+% in. (If this runs out then it repeats the process until done: find 
+% contiguous memory of twice the size, copy what we have so far, fill out 
+% the rest.)
+
+
+
+
+
+
+
+##### SOURCE END #####
+--></body></html>
