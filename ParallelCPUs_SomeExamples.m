@@ -101,10 +101,10 @@ toc
 %%
 % Notice also that we could actually here just do the whole thing as
 % matrix operations with no need to loop (we might even then be able
-% to use the GPU and really speed things up). Both of these would give further speed boosts. The point
+% to use the GPU and further speed things up). Both of these would give further speed boosts. The point
 % here however was about the slicing of matrices with for-loops which can
 % be important boost of speed in practice.
-%
+% (GPU time here is misleading vs its performance in most applications, but provides a good lesson in how it is not a solution to every situation.)
 
 A=randn(N,N);
 tic;
@@ -115,6 +115,8 @@ A_gpu=randn(N,N,'gpuArray');
 tic;
 A_gpu=log(abs(A_gpu)+0.01).*A_gpu;
 toc
+
+
 
 %% Some links:
 % <https://au.mathworks.com/help/distcomp/decide-when-to-use-parfor.html>

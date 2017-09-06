@@ -203,7 +203,7 @@ toc
 % of an i.i.d. random variable. That is, we have a function $f(x)$ and want to integrate it with respect 
 % to some cumulative distribution function $G(x)$. The computational problem to be solved is that to
 % calculate the value of
-% $$ \int f(x) dG(x)$$
+% $$ \int f(x) dG(x) $$
 % There are two main approaches: quadrature methods or monte-carlo methods. Quadrature tends to be better 
 % for GPU, monte-carlo for CPUs.
 %
@@ -295,7 +295,7 @@ toc
 % Asynchronous parallelization. All the examples described so far are based on synchronous processors: a bunch of parallel CPUs all 
 % running at the same time (or all the processors on a GPU running at same time). An alternative is asychronous processors, the number 
 % of parallel CPUs changes over time as more or less of them become available. There is only one reason you would want to use these in 
-% reality, they are much cheaper! Come in two main forms. First, some institutions have <latex>\textit{cycle-harvesting}<\latex> software 
+% reality, they are much cheaper! Come in two main forms. First, some institutions have 'cycle-harvesting' software 
 % installed on all their desktops, so when people are not using their computer it's spare computation cycles are harvested as part of 
 % a 'supercomputer'. Second, cloud services like Amazon's AWS and Microsoft Azure tend to sell their spare cycles much cheaper than they 
 % sell standard computing power (you can even set up your codes to only run when price falls below a certain price per cycle). They have 

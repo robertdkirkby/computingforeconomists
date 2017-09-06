@@ -11,7 +11,7 @@ N=10^4;
 tic;
 A=ones(N,N);
 for a_c=1:N
-    A(N,a_c)=a_c; 
+    A(1:N,a_c)=a_c; 
     % Matlab lets you put a scalar value into all the elements of a vector. 
     % (a scalar on the RHS is about the only case in which LHS and RHS are allowed to be different sizes)
 end
@@ -29,11 +29,15 @@ toc
 % making all the operations parallel. This means that it works even better
 % in combination with gpu.
 
+
 tic;
 a1_gpu=ones(1,N,'gpuArray');
-a2_gpu=linspace(1,N,N,'gpuArray'); % I have switched to linspace as not sure how to use 1:1:N to generate on the gpu.
+a2_gpu=gpuArray.linspace(1,N,N); % I have switched to linspace as not sure how to use 1:1:N to generate on the gpu.
 A_gpu=a2_gpu'*a1_gpu;
 toc
+
+% This example is simple enough that gpu makes little difference on
+% speed, but it is still slightly faster.
 
 %% When you work with gpus not all commands can be used.
 % A list of Matlab commands that can be run on gpu is:

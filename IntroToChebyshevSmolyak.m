@@ -87,9 +87,8 @@ ygrid=exp(xgrid);
 % We could fit a polynomial of order m.
 m=5;
 fittedpolynomialcoeffs = polyfit(xgrid,ygrid,m);
-% [Don't do this in practice (for computational reasons), it is just a more 
-% intuitive example of the concept that we will see with Chebyshev
-% polynomials.]
+% [Normally not such a good choice in practice (for computational reasons), it is just a more 
+% intuitive example of the concept that we will see with Chebyshev polynomials.]
 
 % Take a look at the fit
 % Evaluate the fitted polynomial on our xgrid
@@ -161,6 +160,15 @@ legend('Original function', 'Fitted chebyshev approximation')
 % coefficients. See pg 197 of
 % https://www2.units.it/ipl/students_area/imm2/files/Numerical_Recipes.pdf
 % But in practice you are unlikely to ever want to do so.
+%
+% Remark: As well as standard polynomials, other choices include
+% polynomials in logs, and Hermite polynomials (the later are orthogonal
+% with respect to normally distributed shocks). Since none of these are
+% orthogonal you cannot just fit them as a matrix operation like we did
+% here, instead you have to use some kind of distance metric, like 
+% OLS for standard polynomials, or non-linear least squares for
+% polynomials. These other types of polynomials are quite common in
+% Economics when performing Parametrized Expectations Approach.
 
 %% Fitting Chebyshev polynomials when the domain is [a,b] rather than [-1,1]
 %
@@ -220,106 +228,6 @@ legend('Original function', 'Fitted chebyshev approximation')
 % can just work with the [-1,1] hypercube (or more accurately, the obvious
 % extension of this to [-1,1]^d in higher dimensions, where d is number of dimensions).
 
-%% Derivatives and Integrals: Advantages of Chebyshev approximation
-%
-% Say that we want to find the derivative or integral of our Chebyshev
-% polynomial. It turns out these are computationally trivial to calculate:
-% representing our derivative/integral by a chebyshev polynomial
-% the coefficients of the derivative/integral can be computed directly from
-% the coefficients of the original chebyshev polynomial by means of simple
-% iterative formula.
-% See pg 195 (219 of pdf) of
-% https://www2.units.it/ipl/students_area/imm2/files/Numerical_Recipes.pdf (Book:  NUMERICAL RECIPES IN C: THE ART OF SCIENTIFIC COMPUTING)
-% for the exact formulae (which I implement below).
-% 
-% I am not sure if these derivative and integral formulae generalize to
-% more than one dimension.
-
-% Lets calculate the derivative and integral of the chebyshev polynomial
-% created earlier, the coefficients of which are stored in 'fittedchebyshevcoeffs'
-
-% The derivative is calculated as
-derivativechebyshevcoeffs=nan(m+1,1);
-derivativechebyshevcoeffs(m+1)=0; % Notice that the derivative will effectively be one 'order' less than the original in sense that the m+1 term is always zero.
-derivativechebyshevcoeffs(m)=2*(m+1)*fittedchebyshevcoeffs(m+1);
-derivativechebyshevcoeffs(m-1)=2*m*fittedchebyshevcoeffs(m);
-for ii=1:(m-2)
-   iirev=m-1-ii;
-   derivativechebyshevcoeffs(iirev)=derivativechebyshevcoeffs(iirev+2)+2*(iirev+1)*fittedchebyshevcoeffs(iirev+1);
-end
-% If the function is on the interval [a,b] then you also need the following normalization.
-derivativechebyshevcoeffs=derivativechebyshevcoeffs*2/(b-a);
-
-% Note: this is really just the same formula for iirev=1:m, but with zeros I have treated seperately.
-
-% The integral is calculated as 
-integralchebyshevcoeffs=nan(m+1,1); % Notice that the integral is forced to be the same 'order' as the original
-% Just as when integrating any function we will get an undefined constant term.
-% The last lines normalize it to take value of zero at point a.
-fac=1;
-normalizationconstant=0.25*(b-a);
-integralchebyshevcoeffs(1)=normalizationconstant*(-fittedchebyshevcoeffs(2)); % same formulae as all the other ii, but the ii-1 is zero.
-summation=fac*integralchebyshevcoeffs(1);
-fac=-fac; % alternates +-1
-for ii=2:m
-    integralchebyshevcoeffs(ii)=normalizationconstant*(fittedchebyshevcoeffs(ii-1)-fittedchebyshevcoeffs(ii+1))/ii;
-    summation=summation+fac*integralchebyshevcoeffs(ii);
-    fac=-fac;
-end
-integralchebyshevcoeffs(m+1)=fittedchebyshevcoeffs(m)/(2*(m+1));
-summation=summation+fac*integralchebyshevcoeffs(ii);
-% Normalize first coefficient so that value of the integral at a is zero
-integralchebyshevcoeffs(1)=2*summation;
-
-%
-% Note: the formula for calculating the derivative and that for caclulating the integral are just the same thing in two different directions.
-%
-% Note: I suspect these derivative and integral formula are the exact
-% derivative and integral, not just their best approximation in terms of
-% chebyshev polynomials. But I have never actually checked this is true.
-%
-% Lets plot the original function, the chebyshev approximation, the
-% (chebyshev) derivative, and the (chebyshev) integral. 
-% This is mainly of interest if you use the exponential function as your example since in
-% this case both the derivative and integral should also be the exponential function.
-% Evaluate the fitted chebyshev polynomial on our zgrid
-%
-
-% values for derivative (just same 'values' code as before)
-b1 = zeros(numdatapoints,1);
-b0 = zeros(numdatapoints,1);
-for jj=m:-1:0
-    b2=b1;
-    b1=b0;
-    b0=derivativechebyshevcoeffs(jj+1)+2*zgrid.*b1-b2; % only change is now uses zgrid
-end
-ygrid_derivativechebyshev= 0.5*(derivativechebyshevcoeffs(1)+b0-b2);
-% values for integral (just same 'values' code as before)
-b1 = zeros(numdatapoints,1);
-b0 = zeros(numdatapoints,1);
-for jj=m:-1:0
-    b2=b1;
-    b1=b0;
-    b0=integralchebyshevcoeffs(jj+1)+2*zgrid.*b1-b2; % only change is now uses zgrid
-end
-ygrid_integralchebyshev= 0.5*(integralchebyshevcoeffs(1)+b0-b2);
-
-figure(4)
-% Now graph to take a look at the fit
-subplot(3,1,1); plot(xgrid,ygrid,'*',xgrid,ygrid_derivativechebyshev,'-')
-title('Derivative of Fitted Chebyshev on interval [a,b]')
-legend('Original function', 'Derivative of Fitted Chebyshev')
-subplot(3,1,2); plot(xgrid,ygrid,'*',xgrid,ygrid_fittedchebyshev,'-')
-title('Fitted Chebyshev on interval [a,b]')
-legend('Original function', 'Fitted chebyshev approximation')
-subplot(3,1,3); plot(xgrid,ygrid,'*',xgrid,ygrid_integralchebyshev,'-')
-title('Integral of Fitted Chebyshev on interval [a,b]')
-legend('Original function', 'Integral of Fitted Chebyshev')
-
-%
-% Remark: derivative is fine, but integral is pretty rubbish.
-% [Recall: derivative and integral of exp(x) should both just be exp(x), in latter case up to a constant of integration]
-%
 
 %% Higher dimensions
 %

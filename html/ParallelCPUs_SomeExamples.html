@@ -6,7 +6,7 @@
    <!--
 This HTML was auto-generated from MATLAB code.
 To make changes, update the MATLAB code and republish this document.
-      --><title>ParallelCPUs_SomeExamples</title><meta name="generator" content="MATLAB 9.2"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2017-08-29"><meta name="DC.source" content="ParallelCPUs_SomeExamples.m"><style type="text/css">
+      --><title>ParallelCPUs_SomeExamples</title><meta name="generator" content="MATLAB 9.2"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2017-09-06"><meta name="DC.source" content="ParallelCPUs_SomeExamples.m"><style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
 
 html { min-height:100%; margin-bottom:1px; }
@@ -94,8 +94,8 @@ toc
 <span class="comment">% Note: if you actually wanted to find the zeros of a function there are</span>
 <span class="comment">% specific Matlab commands for doing this (like fzero). This example is</span>
 <span class="comment">% just intended as an illustration of parfor.</span>
-</pre><pre class="codeoutput">Elapsed time is 9.513648 seconds.
-Elapsed time is 5.729116 seconds.
+</pre><pre class="codeoutput">Elapsed time is 8.574646 seconds.
+Elapsed time is 4.590317 seconds.
 </pre><p>The gains from parfor in this example are small. This is because the fmincon of modelfn was itself not something that took very long. If this command had taken a long time then the speed boost of parfor would be much larger.</p><h2 id="3">Slicing matrices</h2><p>Say you want your parallel for loop so that each iteration works with a specific line of a matrix. In principle Matlab will look at this and automatically figure out that each cpu should only be sent the relevant row of the matrix. In practice this is not always true, and telling it that this is the case can substantially boost speed by reducing overhead.</p><p>Take the following example, you can see that Matlab has done almost as well automatically slicing this up as we have done by manually doing it (in the second case). In more complicated applications however Matlab will be unable to spot all of the slicing tricks and so the automated version will be substantially slower. (Often Matlab gives a warning that it suspects a certain variable could be sliced but was unable to do so.)</p><pre class="codeinput">N=5000;
 
 A=randn(N,N);
@@ -113,8 +113,8 @@ tic;
     A(ii,:)=A_ii;
 <span class="keyword">end</span>
 toc
-</pre><pre class="codeoutput">Elapsed time is 1.046273 seconds.
-Elapsed time is 0.925451 seconds.
+</pre><pre class="codeoutput">Elapsed time is 0.635908 seconds.
+Elapsed time is 0.624000 seconds.
 </pre><p>Remember that Matlab is storing matrices so that their columns are continguous in memory. So actually if we were smarter we would do the same thing but with A in such a form that we take column slices.</p><pre class="codeinput">A=randn(N,N);
 tic;
 <span class="keyword">parfor</span> ii=1:N
@@ -123,8 +123,8 @@ tic;
     A(:,ii)=A_ii;
 <span class="keyword">end</span>
 toc
-</pre><pre class="codeoutput">Elapsed time is 0.764040 seconds.
-</pre><p>Notice also that we could actually here just do the whole thing as matrix operations with no need to loop (we might even then be able to use the GPU and really speed things up). Both of these would give further speed boosts. The point here however was about the slicing of matrices with for-loops which can be important boost of speed in practice.</p><pre class="codeinput">A=randn(N,N);
+</pre><pre class="codeoutput">Elapsed time is 0.575348 seconds.
+</pre><p>Notice also that we could actually here just do the whole thing as matrix operations with no need to loop (we might even then be able to use the GPU and further speed things up). Both of these would give further speed boosts. The point here however was about the slicing of matrices with for-loops which can be important boost of speed in practice. (GPU time here is misleading vs its performance in most applications, but provides a good lesson in how it is not a solution to every situation.)</p><pre class="codeinput">A=randn(N,N);
 tic;
 A=log(abs(A)+0.01).*A;
 toc
@@ -133,15 +133,9 @@ A_gpu=randn(N,N,<span class="string">'gpuArray'</span>);
 tic;
 A_gpu=log(abs(A_gpu)+0.01).*A_gpu;
 toc
-</pre><pre class="codeoutput">Elapsed time is 0.271839 seconds.
-</pre><pre class="codeoutput error">There is a problem with the CUDA driver or with this GPU device. Be sure that you have a &lt;a href="matlab:web('http://www.mathworks.com/gpudevice','-browser')"&gt;supported GPU&lt;/a&gt; and that the &lt;a href="matlab:web('http://www.mathworks.com/gpudriver','-browser')"&gt;latest driver&lt;/a&gt; is installed.
-
-Error in GPUsForEconomists (line 104)
-A_gpu=3+0.6*randn('gpuArray');
-
-Caused by:
-    The CUDA driver could not be loaded. The library name used was 'libcuda.so.1'. The error was:
-    libcuda.so.1: cannot open shared object file: No such file or director</pre><h2 id="6">Some links:</h2><p><a href="https://au.mathworks.com/help/distcomp/decide-when-to-use-parfor.html">https://au.mathworks.com/help/distcomp/decide-when-to-use-parfor.html</a></p><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2017a</a><br></p></div><!--
+</pre><pre class="codeoutput">Elapsed time is 0.187237 seconds.
+Elapsed time is 0.448051 seconds.
+</pre><h2 id="6">Some links:</h2><p><a href="https://au.mathworks.com/help/distcomp/decide-when-to-use-parfor.html">https://au.mathworks.com/help/distcomp/decide-when-to-use-parfor.html</a></p><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2017a</a><br></p></div><!--
 ##### SOURCE BEGIN #####
 %% Parallel CPUs: some guidelines and nice applications.
 %
@@ -246,10 +240,10 @@ toc
 %%
 % Notice also that we could actually here just do the whole thing as
 % matrix operations with no need to loop (we might even then be able
-% to use the GPU and really speed things up). Both of these would give further speed boosts. The point
+% to use the GPU and further speed things up). Both of these would give further speed boosts. The point
 % here however was about the slicing of matrices with for-loops which can
 % be important boost of speed in practice.
-%
+% (GPU time here is misleading vs its performance in most applications, but provides a good lesson in how it is not a solution to every situation.)
 
 A=randn(N,N);
 tic;
@@ -260,6 +254,8 @@ A_gpu=randn(N,N,'gpuArray');
 tic;
 A_gpu=log(abs(A_gpu)+0.01).*A_gpu;
 toc
+
+
 
 %% Some links:
 % <https://au.mathworks.com/help/distcomp/decide-when-to-use-parfor.html>

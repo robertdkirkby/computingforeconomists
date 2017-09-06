@@ -6,7 +6,7 @@
    <!--
 This HTML was auto-generated from MATLAB code.
 To make changes, update the MATLAB code and republish this document.
-      --><title>Vectorizing</title><meta name="generator" content="MATLAB 9.2"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2017-08-29"><meta name="DC.source" content="Vectorizing.m"><style type="text/css">
+      --><title>Vectorizing</title><meta name="generator" content="MATLAB 9.2"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2017-09-06"><meta name="DC.source" content="Vectorizing.m"><style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
 
 html { min-height:100%; margin-bottom:1px; }
@@ -71,7 +71,7 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 tic;
 A=ones(N,N);
 <span class="keyword">for</span> a_c=1:N
-    A(N,a_c)=a_c;
+    A(1:N,a_c)=a_c;
     <span class="comment">% Matlab lets you put a scalar value into all the elements of a vector.</span>
     <span class="comment">% (a scalar on the RHS is about the only case in which LHS and RHS are allowed to be different sizes)</span>
 <span class="keyword">end</span>
@@ -82,21 +82,18 @@ a1=ones(1,N);
 a2=1:1:N;
 A=a2'*a1;
 toc
-</pre><pre class="codeoutput">Elapsed time is 0.246841 seconds.
-Elapsed time is 0.142713 seconds.
+</pre><pre class="codeoutput">Elapsed time is 0.260351 seconds.
+Elapsed time is 0.081887 seconds.
 </pre><h2 id="2">With gpu it is even better.</h2><p>Notice that vectorizing things, instead of using loops, often involves making all the operations parallel. This means that it works even better in combination with gpu.</p><pre class="codeinput">tic;
 a1_gpu=ones(1,N,<span class="string">'gpuArray'</span>);
-a2_gpu=linspace(1,N,N,<span class="string">'gpuArray'</span>); <span class="comment">% I have switched to linspace as not sure how to use 1:1:N to generate on the gpu.</span>
+a2_gpu=gpuArray.linspace(1,N,N); <span class="comment">% I have switched to linspace as not sure how to use 1:1:N to generate on the gpu.</span>
 A_gpu=a2_gpu'*a1_gpu;
 toc
-</pre><pre class="codeoutput error">There is a problem with the CUDA driver or with this GPU device. Be sure that you have a &lt;a href="matlab:web('http://www.mathworks.com/gpudevice','-browser')"&gt;supported GPU&lt;/a&gt; and that the &lt;a href="matlab:web('http://www.mathworks.com/gpudriver','-browser')"&gt;latest driver&lt;/a&gt; is installed.
 
-Error in GPUsForEconomists (line 99)
-% Not worthwhile as the overhead incurred in splitting things up and
-
-Caused by:
-    The CUDA driver could not be loaded. The library name used was 'libcuda.so.1'. The error was:
-    libcuda.so.1: cannot open shared object file: No such file or director</pre><h2 id="3">When you work with gpus not all commands can be used.</h2><p>A list of Matlab commands that can be run on gpu is: <a href="https://au.mathworks.com/help/distcomp/run-built-in-functions-on-a-gpu.html">Matlab: MATLAB Functions with gpuArray Arguments</a></p><p>[Side note: GPU computing in Julia looks likely to be seriously impressive, but for now (August 2017) the corresponding list of functions that have been already adapted for use on gpu is small. For more see: <a href="http://julialang.org/blog/2017/03/cudanative">http://julialang.org/blog/2017/03/cudanative</a> <a href="http://mikeinnes.github.io/2017/08/24/cudanative.html">http://mikeinnes.github.io/2017/08/24/cudanative.html</a> Once this issue has been resolved, which one imagines it will be over the next year or two, it seems likely that Julia will provide the nicest gpu computing experience of any language.]</p><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2017a</a><br></p></div><!--
+<span class="comment">% This example is simple enough that gpu makes little difference on</span>
+<span class="comment">% speed, but it is still slightly faster.</span>
+</pre><pre class="codeoutput">Elapsed time is 0.078622 seconds.
+</pre><h2 id="3">When you work with gpus not all commands can be used.</h2><p>A list of Matlab commands that can be run on gpu is: <a href="https://au.mathworks.com/help/distcomp/run-built-in-functions-on-a-gpu.html">Matlab: MATLAB Functions with gpuArray Arguments</a></p><p>[Side note: GPU computing in Julia looks likely to be seriously impressive, but for now (August 2017) the corresponding list of functions that have been already adapted for use on gpu is small. For more see: <a href="http://julialang.org/blog/2017/03/cudanative">http://julialang.org/blog/2017/03/cudanative</a> <a href="http://mikeinnes.github.io/2017/08/24/cudanative.html">http://mikeinnes.github.io/2017/08/24/cudanative.html</a> Once this issue has been resolved, which one imagines it will be over the next year or two, it seems likely that Julia will provide the nicest gpu computing experience of any language.]</p><p class="footer"><br><a href="http://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2017a</a><br></p></div><!--
 ##### SOURCE BEGIN #####
 %% Vectorizing is good.
 %
@@ -111,7 +108,7 @@ N=10^4;
 tic;
 A=ones(N,N);
 for a_c=1:N
-    A(N,a_c)=a_c; 
+    A(1:N,a_c)=a_c; 
     % Matlab lets you put a scalar value into all the elements of a vector. 
     % (a scalar on the RHS is about the only case in which LHS and RHS are allowed to be different sizes)
 end
@@ -129,11 +126,15 @@ toc
 % making all the operations parallel. This means that it works even better
 % in combination with gpu.
 
+
 tic;
 a1_gpu=ones(1,N,'gpuArray');
-a2_gpu=linspace(1,N,N,'gpuArray'); % I have switched to linspace as not sure how to use 1:1:N to generate on the gpu.
+a2_gpu=gpuArray.linspace(1,N,N); % I have switched to linspace as not sure how to use 1:1:N to generate on the gpu.
 A_gpu=a2_gpu'*a1_gpu;
 toc
+
+% This example is simple enough that gpu makes little difference on
+% speed, but it is still slightly faster.
 
 %% When you work with gpus not all commands can be used.
 % A list of Matlab commands that can be run on gpu is:
